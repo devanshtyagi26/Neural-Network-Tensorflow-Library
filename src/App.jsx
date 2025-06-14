@@ -1,108 +1,32 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import MLAppTemplate from "./MLtemp"; // Import your reusable template
 import NeuralNetwork from "./Lib/nn"; // Your custom NN library
 
 const App = () => {
-  const [loading, setLoading] = useState(true);
-  const [epoch, setEpoch] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [outputs, setOutputs] = useState([]);
+  const neuralNetworkConfig = {
+    inputSize: 2,
+    hiddenSize: 6,
+    outputSize: 1,
+    learningRate: 0.1,
+    activationHidden: "tanh",
+    activationOutput: "sigmoid",
+  };
 
-  const inputs = [
+  const trainingData = [
     [0, 0],
     [0, 1],
     [1, 0],
     [1, 1],
   ];
 
-  const targets = [[0], [1], [1], [0]]; // XOR targets
-
-  const runXOR = () => {
-    const nn = new NeuralNetwork({
-      inputSize: 2,
-      hiddenSize: 6,
-      outputSize: 1,
-      learningRate: 0.1,
-      activationHidden: "tanh",
-      activationOutput: "sigmoid",
-    });
-
-    const totalEpochs = 5000;
-    const batchSize = 100; // Number of epochs to train per batch
-
-    let currentEpoch = 0;
-
-    // Training loop with a delay (chunked)
-    const trainingInterval = setInterval(() => {
-      for (let i = 0; i < batchSize; i++) {
-        nn.trainBatch(inputs, targets); // Train the batch synchronously
-        currentEpoch++;
-
-        // Update progress
-        const progressPercentage = Math.floor(
-          (currentEpoch / totalEpochs) * 100
-        );
-        setProgress(progressPercentage);
-
-        if (currentEpoch % 100 === 0)
-          console.log(`Training... epoch ${currentEpoch}`);
-
-        setEpoch(currentEpoch); // Update state after batch
-        if (currentEpoch >= totalEpochs) {
-          clearInterval(trainingInterval); // Stop training when done
-          // Once training is done, make predictions
-          const output = inputs.map((inp) => {
-            const prediction = nn.predict(inp);
-            const [pred] = prediction || [];
-            return {
-              input: inp,
-              output: pred !== undefined ? parseFloat(pred.toFixed(3)) : "N/A",
-            };
-          });
-
-          setOutputs(output); // Set predictions after training is done
-          setLoading(false); // Hide loading state
-        }
-      }
-    }, 10); // Run the training every 10ms (adjust as needed)
-  };
-
-  useEffect(() => {
-    runXOR(); // Start the training process when component mounts
-  }, []);
+  const targetData = [[0], [1], [1], [0]]; // XOR targets
 
   return (
-    <div style={{ fontFamily: "monospace", padding: "2rem" }}>
-      <h1>🧠 XOR Neural Network Demo</h1>
-      {loading ? (
-        <div style={{ fontSize: "1.2rem", color: "#555" }}>
-          <span className="loader" style={{ marginRight: "1rem" }}>
-            🔄
-          </span>
-          Training the model, please wait...
-          <p>Progress: {progress}%</p>
-        </div>
-      ) : (
-        <div>
-          <p>Trained for {epoch}+ epochs</p>
-          <table border="1" cellPadding="10" style={{ marginTop: "1rem" }}>
-            <thead>
-              <tr>
-                <th>Input</th>
-                <th>Output (Prediction)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {outputs.map((res, i) => (
-                <tr key={i}>
-                  <td>[{res.input.join(", ")}]</td>
-                  <td>{res.output}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    <MLAppTemplate
+      neuralNetworkConfig={neuralNetworkConfig}
+      trainingData={trainingData}
+      targetData={targetData}
+    />
   );
 };
 
