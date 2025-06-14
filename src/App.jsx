@@ -1,57 +1,88 @@
-import { useEffect, useRef } from "react";
-import * as tf from "@tensorflow/tfjs";
-import NeuralNetwork from "./Lib/nn";
+// App.jsx
+import React, { useEffect, useState } from "react";
+import NeuralNetwork from "./Lib/nn"; // Your library file
 
-const training_data = [
-  { inputs: [0, 0], targets: [0] },
-  { inputs: [0, 1], targets: [1] },
-  { inputs: [1, 0], targets: [1] },
-  { inputs: [1, 1], targets: [0] },
-];
-
-function getRandomTrainingData(data) {
-  const index = Math.floor(Math.random() * data.length);
-  return data[index];
-}
-
-function App() {
-  const hasRun = useRef(false);
+const App = () => {
+  const [results, setResults] = useState([]);
+  const [epoch, setEpoch] = useState(0);
 
   useEffect(() => {
-    const run = async () => {
-      if (hasRun.current) return;
-      hasRun.current = true;
-
-      await tf.ready();
-
-      const nn = new NeuralNetwork(2, 2, 1);
-
-      // Training faster: full batch per iteration
-      for (let i = 0; i < 100000; i++) {
-        const inputs = training_data.map((d) => d.inputs); // shape: [4, 2]
-        const targets = training_data.map((d) => d.targets); // shape: [4, 1]
-        nn.trainBatch(inputs, targets);
-      }
-
-      console.log("🧠 Training complete! Here's the XOR logic:");
-
-      const testInputs = [
+    const runXOR = async () => {
+      // XOR data
+      const inputs = [
         [0, 0],
         [0, 1],
         [1, 0],
         [1, 1],
       ];
+      const targets = [[0], [1], [1], [0]];
 
-      for (const input of testInputs) {
-        const output = await nn.feedForward(input);
-        console.log(`Input: ${input} → Output: ${output[0].toFixed(3)}`);
+      // Init NN
+      const nn = new NeuralNetwork({
+        inputSize: 2,
+        hiddenSize: 4,
+        outputSize: 1,
+        learningRate: 0.1,
+        activationHidden: "tanh",
+        activationOutput: "sigmoid",
+      });
+
+      // Train for 1000 epochs
+      for (let i = 0; i < 1000; i++) {
+        nn.trainBatch(inputs, targets);
+        if (i % 100 === 0) {
+          console.log(`Training... epoch ${i}`);
+          setEpoch(i);
+        }
       }
+
+      // Predict
+      const output = inputs.map((inp) => {
+        try {
+          const prediction = nn.predict(inp); // returns Float32Array
+          const [pred] = Array.from(prediction || []); // ensures fallback to empty array
+          return {
+            input: inp,
+            output: pred !== undefined ? parseFloat(pred.toFixed(3)) : "N/A",
+          };
+        } catch (err) {
+          console.error("Prediction error:", err);
+          return {
+            input: inp,
+            output: "error",
+          };
+        }
+      });
+      
+
+      setResults(output);
     };
 
-    run();
+    runXOR();
   }, []);
 
-  return <h1>XOR Neural Network Trained 💡 Open console</h1>;
-}
+  return (
+    <div style={{ fontFamily: "monospace", padding: "2rem" }}>
+      <h1>🧠 XOR Neural Network Demo</h1>
+      <p>Trained for {epoch}+ epochs</p>
+      <table border="1" cellPadding="10" style={{ marginTop: "1rem" }}>
+        <thead>
+          <tr>
+            <th>Input</th>
+            <th>Output (Prediction)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {results.map((res, i) => (
+            <tr key={i}>
+              <td>[{res.input.join(", ")}]</td>
+              <td>{res.output}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export default App;
