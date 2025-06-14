@@ -76,8 +76,14 @@ class NeuralNetwork {
       const inputs = tf.tensor2d([input_array]);
       const targets = tf.tensor2d([target_array]);
 
-      const hidden = inputs.matMul(this.weights_ih).add(this.bias_h).sigmoid();
-      const outputs = hidden.matMul(this.weights_ho).add(this.bias_o).sigmoid();
+      const hidden = this._activate(
+        inputs.matMul(this.weights_ih).add(this.bias_h),
+        this.activationHidden
+      );
+      const outputs = this._activate(
+        hidden.matMul(this.weights_ho).add(this.bias_o),
+        this.activationOutput
+      );
 
       const output_errors = targets.sub(outputs);
 

@@ -4,6 +4,7 @@ import NeuralNetwork from "./Lib/nn"; // Your custom NN library
 const App = () => {
   const [loading, setLoading] = useState(true);
   const [epoch, setEpoch] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [outputs, setOutputs] = useState([]);
 
   const inputs = [
@@ -15,7 +16,7 @@ const App = () => {
 
   const targets = [[0], [1], [1], [0]]; // XOR targets
 
-  const runXOR = async () => {
+  const runXOR = () => {
     const nn = new NeuralNetwork({
       inputSize: 2,
       hiddenSize: 6,
@@ -25,29 +26,48 @@ const App = () => {
       activationOutput: "sigmoid",
     });
 
-    // Train the network
-    for (let i = 0; i < 5000; i++) {
-      nn.trainBatch(inputs, targets);
-      if (i % 100 === 0) console.log(`Training... epoch ${i}`);
-      setEpoch(i);
-    }
+    const totalEpochs = 5000;
+    const batchSize = 100; // Number of epochs to train per batch
 
-    // Predict
-    const output = inputs.map((inp) => {
-      const prediction = nn.predict(inp); // returns Float32Array
-      const [pred] = prediction || [];
-      return {
-        input: inp,
-        output: pred !== undefined ? parseFloat(pred.toFixed(3)) : "N/A",
-      };
-    });
+    let currentEpoch = 0;
 
-    setOutputs(output);
-    setLoading(false); // hide loader after training
+    // Training loop with a delay (chunked)
+    const trainingInterval = setInterval(() => {
+      for (let i = 0; i < batchSize; i++) {
+        nn.trainBatch(inputs, targets); // Train the batch synchronously
+        currentEpoch++;
+
+        // Update progress
+        const progressPercentage = Math.floor(
+          (currentEpoch / totalEpochs) * 100
+        );
+        setProgress(progressPercentage);
+
+        if (currentEpoch % 100 === 0)
+          console.log(`Training... epoch ${currentEpoch}`);
+
+        setEpoch(currentEpoch); // Update state after batch
+        if (currentEpoch >= totalEpochs) {
+          clearInterval(trainingInterval); // Stop training when done
+          // Once training is done, make predictions
+          const output = inputs.map((inp) => {
+            const prediction = nn.predict(inp);
+            const [pred] = prediction || [];
+            return {
+              input: inp,
+              output: pred !== undefined ? parseFloat(pred.toFixed(3)) : "N/A",
+            };
+          });
+
+          setOutputs(output); // Set predictions after training is done
+          setLoading(false); // Hide loading state
+        }
+      }
+    }, 10); // Run the training every 10ms (adjust as needed)
   };
 
   useEffect(() => {
-    runXOR();
+    runXOR(); // Start the training process when component mounts
   }, []);
 
   return (
@@ -59,6 +79,7 @@ const App = () => {
             🔄
           </span>
           Training the model, please wait...
+          <p>Progress: {progress}%</p>
         </div>
       ) : (
         <div>
